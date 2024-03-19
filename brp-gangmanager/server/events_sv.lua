@@ -195,22 +195,40 @@ local cooldown = function(gangname)
     end
 end
 
-
 RegisterServerEvent('brp:stealGangFlag')
 AddEventHandler('brp:stealGangFlag', function(gangs)
-    gangname = gangs.label
-    source = source
+    local source = source
+    local gangname = gangs.label
     local xPlayer = ESX.GetPlayerFromId(source)
-    if flagstatus[gangname].stolen == false then
-        if xPlayer.addInventoryItem(gangname..'_flag', 1) then
-            flagstatus[gangname].stolen = true
-            flagstatus[gangname].timer = gangs.stealcooldown
-            print(json.encode(flagstatus))
-            TriggerClientEvent('brp:showNotification', source, "You have stolen the "..gangname..' flag', 1)
-            TriggerClientEvent('chatMessage', -1, '^5[Gang Alert]^0', {255, 255, 255}, gangname..'\'s flag has been stolen!')
-            cooldown(gangname)
-        end
+
+    -- Check if the player is valid and in a gang
+    if xPlayer and xPlayer.identifier then
+        local query = "SELECT gang FROM users WHERE identifier = @identifier"
+        local params = {['@identifier'] = xPlayer.identifier}
+
+        MySQL.Async.fetchScalar(query, params, function(gang)
+            if gang and gang ~= 'none' then -- Player is in a gang
+                if gang ~= gangname then
+                    if flagstatus[gangname].stolen == false then
+                        if xPlayer.addInventoryItem(gangname..'_flag', 1) then
+                            flagstatus[gangname].stolen = true
+                            flagstatus[gangname].timer = gangs.stealcooldown
+                            print(json.encode(flagstatus))
+                            TriggerClientEvent('brp:showNotification', source, "You have stolen the "..gangname.." flag", 1)
+                            TriggerClientEvent('chatMessage', -1, '^5[Gang Alert]^0', {255, 255, 255}, gangname..'\'s flag has been stolen!')
+                            cooldown(gangname)
+                        end
+                    else
+                        TriggerClientEvent('brp:showNotification', source, "Flag is already stolen, please wait: "..flagstatus[gangname].timer.." seconds", 2)
+                    end
+                else
+                    TriggerClientEvent('brp:showNotification', source, "You cant steal your own flag", 2)
+                end
+            else
+                TriggerClientEvent('brp:showNotification', source, "You must be a member of a gang to steal this flag", 2)
+            end
+        end)
     else
-        TriggerClientEvent('brp:showNotification', source, "Flag is already stolen, please wait: "..flagstatus[gangname].timer.." seconds", 2)
+        print("Player not found or invalid player data")
     end
 end)

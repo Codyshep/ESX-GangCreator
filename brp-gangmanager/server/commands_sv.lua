@@ -40,10 +40,27 @@ RegisterCommand("clearprop", function(source, args)
     TriggerClientEvent("chatMessage", source, "^2Cleared props within a radius of " .. radius .. " meters.")
 end, 'group.admin')
 
-RegisterCommand('setgang', function(source, args)
-    TriggerEvent('brp:setUserGang', args[1], args[2], args[3])
-end, 'group.admin')
+RegisterCommand('gang', function(source, args)
+    local source = source
+    local player = ESX.GetPlayerFromId(source)
+    local identifier = player.identifier
+    local query = "SELECT gang, gang_grade FROM users WHERE identifier = @identifier;"
+    local params = {['@identifier'] = identifier}
 
-RegisterCommand('getganginfo', function(source, args)
-    TriggerEvent('brp:getUserGangInfo', args[1])
-end, 'group.admin')
+    MySQL.Async.fetchAll(query, params, function(result)
+        if result then
+            if result[1] then
+                local gang = result[1].gang or "Unknown Gang"
+                local gangGrade = result[1].gang_grade or 0
+                local message = ("Gang %s with grade %d"):format(gang, gangGrade)
+                TriggerClientEvent('brp:showNotification', source, message, 1)
+            else
+                local errorMessage = ("not found or has no gang information")
+                TriggerClientEvent('brp:showNotification', source, errorMessage, 2)
+            end
+        else
+            local errorMessage = "Error fetching user gang information"
+            TriggerClientEvent('brp:showNotification', source, errorMessage, 3)
+        end
+    end)
+end)

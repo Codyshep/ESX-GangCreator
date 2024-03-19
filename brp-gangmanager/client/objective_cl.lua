@@ -5,11 +5,23 @@ for _, gangs in ipairs(config.gangs) do
     local object = nil
     while not DoesEntityExist(object) do
         object = CreateObject('m23_1_prop_m31_crate_narc', x, y, z, true)
-        PlaceObjectOnGroundProperly(object)
         FreezeEntityPosition(object, true)
         print(object)
         Citizen.Wait(1000)
     end
+end
+
+for _, gangs in ipairs(config.gangs) do
+    lib.zones.sphere({
+        coords = gangs.gangzone_coords,
+        radius = gangs.gangzone_size,
+        onEnter = function()
+            exports['notifications']:sendnotify('You are in '..gangs.label..'\'s territory, be careful!', 3, 6000)
+        end,
+        onExit = function()
+            exports['notifications']:sendnotify('Exited '..gangs.label..'\'s territory!', 1, 6000)
+        end
+    })
 end
 
 for _, gangs in ipairs(config.gangs) do 
